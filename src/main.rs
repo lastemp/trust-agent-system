@@ -439,23 +439,7 @@ async fn get_b2c_result(
 }
 
 fn get_business_to_customer_details(data: &web::Data<Pool>) -> BusinessToCustomerInputDetails {
-    /*
-    let mut access_token = String::from("Bearer");
-    let k = " "; // Separator
-    let password: String = db_layer::get_mpesa_access_token(&data);
-    access_token.push_str(k);
-    access_token.push_str(&password);
-    let api_url = db_layer::get_settings_details(&data, String::from("c2bregisterurlmpesa"));
-    let short_code =
-        db_layer::get_settings_details(&data, String::from("c2bregisterbusinessshortcodempesa"));
-    let response_type =
-        db_layer::get_settings_details(&data, String::from("c2bregisterresponsetypempesa"));
-    let confirmation_url =
-        db_layer::get_settings_details(&data, String::from("confirmationc2burlmpesa"));
-    let validation_url =
-        db_layer::get_settings_details(&data, String::from("validationc2burlmpesa"));
-    */
-    let my_access_token: String = String::from("Bearer rESzZb66InSmN1KJyZpGtayG1Jj1");
+    let my_access_token: String = String::from("Bearer ***");
     let my_api_url: String =
         String::from("https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest");
     let my_initiator_name: String = String::from("testapi");
