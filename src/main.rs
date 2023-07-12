@@ -459,7 +459,7 @@ fn get_business_to_customer_details(data: &web::Data<Pool>) -> BusinessToCustome
     let my_api_url: String =
         String::from("https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest");
     let my_initiator_name: String = String::from("testapi");
-    let my_security_credential: String = String::from("nXogw6x6vYCrvoI09ygwmj4qA4BXzOs9cyVW1Y5484IsMo8hHLDI/ziAuT/kKn929AzeFy0ZjHW9ISQFWEfaSn5pH4GMuXb5rRG3ECLqansrIpGxEqTnSCsxT4t0N+iCzgBq6A2UuGAZhG3/8G9W2uSYQ7Jidy7w17Kp4BtH0c0IoPs626cHhNkGyYjhbDkxjtYlAbI06tJd/drHtsemljodgQ19S6AVSgefB3TO9hGf13F5+CTpE5iSNv62aSG/qxQ+zDy8ntF8WcaEz4Ya369BWI3kSwOZfPI6HQn8G2XUEcBfGoFoxtwP8TmTUbw/zCXkNSTMXmbvWBXiG+nuFQ==");
+    let my_security_credential: String = String::from("***");
     let my_command_id: String = String::from("BusinessPayment");
     let my_amount: u32 = 150;
     let my_party_a: u32 = 600978;
