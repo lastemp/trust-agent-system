@@ -88,6 +88,22 @@ struct B2CResultData {
     Result: B2CResultDetails,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct B2CFailedDetails {
+    pub ResultType: u8,
+    pub ResultCode: u32,
+    pub ResultDesc: String,
+    pub OriginatorConversationID: String,
+    pub ConversationID: String,
+    pub TransactionID: String,
+    pub ReferenceData: ReferenceItem,
+}
+
+#[derive(Deserialize, Debug)]
+struct B2CFailedData {
+    Result: B2CFailedDetails,
+}
+
 // output
 #[derive(Serialize)]
 pub struct ResponseStatus {
@@ -266,9 +282,29 @@ async fn get_transaction(data: web::Data<Pool>) -> impl Responder {
 }
 
 #[post("/b2c/timeout")]
-async fn get_b2c_timeout(data: web::Data<Pool>) -> impl Responder {
-    //let project_response_data = db_layer::get_project_data(&data);
+async fn get_b2c_timeout(
+    result_data: web::Json<B2CFailedData>,
+    data: web::Data<Pool>,
+) -> impl Responder {
+    let result_type = &result_data.Result.ResultType;
+    let result_code = &result_data.Result.ResultCode;
+    let result_desc = &result_data.Result.ResultDesc;
+    let originator_conversation_id = &result_data.Result.OriginatorConversationID;
+    let conversation_id = &result_data.Result.ConversationID;
+    let transaction_id = &result_data.Result.TransactionID;
+    let reference_item = &result_data.Result.ReferenceData.ReferenceItem;
+    let queue_timeout_url = &reference_item.Value;
 
+    println!("result_type: {:?}", &result_type);
+    println!("result_code: {:?}", &result_code);
+    println!("result_desc: {:?}", &result_desc);
+    println!(
+        "originator_conversation_id: {:?}",
+        &originator_conversation_id
+    );
+    println!("conversation_id: {:?}", &conversation_id);
+    println!("transaction_id: {:?}", &transaction_id);
+    println!("queue_timeout_url: {:?}", &queue_timeout_url);
     //web::Json(project_response_data)
     format!("")
 }
@@ -276,7 +312,6 @@ async fn get_b2c_timeout(data: web::Data<Pool>) -> impl Responder {
 #[post("/b2c/result")]
 async fn get_b2c_result(
     result_data: web::Json<B2CResultData>,
-    //req: HttpRequest,
     data: web::Data<Pool>,
 ) -> impl Responder {
     //let project_response_data = db_layer::get_project_data(&data);
@@ -288,7 +323,7 @@ async fn get_b2c_result(
     let conversation_id = &result_data.Result.ConversationID;
     let transaction_id = &result_data.Result.TransactionID;
     let result_parameters = &result_data.Result.ResultParameters;
-    let mut transaction_amount = 0;
+    let mut transaction_amount: f32 = 0.0;
     let mut transaction_receipt = String::from("");
     let mut b2c_recipient_is_registered_customer = String::from("");
     let mut b2c_charges_paid_account_available_funds: f32 = 0.0;
@@ -310,10 +345,10 @@ async fn get_b2c_result(
             .eq_ignore_ascii_case(&String::from("TransactionAmount"))
         {
             transaction_amount = match _value {
-                MixedTypeValue::StringValue(s) => 0,
-                MixedTypeValue::IntegerValue(i) => *i,
-                MixedTypeValue::FloatValue(f) => 0,
-                _ => 0,
+                MixedTypeValue::StringValue(s) => 0.0,
+                MixedTypeValue::IntegerValue(i) => *i as f32,
+                MixedTypeValue::FloatValue(f) => *f,
+                _ => 0.0,
             }
         }
 
@@ -349,7 +384,7 @@ async fn get_b2c_result(
         {
             b2c_charges_paid_account_available_funds = match _value {
                 MixedTypeValue::StringValue(s) => 0.0,
-                MixedTypeValue::IntegerValue(i) => 0.0,
+                MixedTypeValue::IntegerValue(i) => *i as f32,
                 MixedTypeValue::FloatValue(f) => *f,
                 _ => 0.0,
             }
@@ -387,7 +422,7 @@ async fn get_b2c_result(
         {
             b2c_utility_account_available_funds = match _value {
                 MixedTypeValue::StringValue(s) => 0.0,
-                MixedTypeValue::IntegerValue(i) => 0.0,
+                MixedTypeValue::IntegerValue(i) => *i as f32,
                 MixedTypeValue::FloatValue(f) => *f,
                 _ => 0.0,
             }
@@ -401,7 +436,7 @@ async fn get_b2c_result(
         {
             b2c_working_account_available_funds = match _value {
                 MixedTypeValue::StringValue(s) => 0.0,
-                MixedTypeValue::IntegerValue(i) => 0.0,
+                MixedTypeValue::IntegerValue(i) => *i as f32,
                 MixedTypeValue::FloatValue(f) => *f,
                 _ => 0.0,
             }
@@ -444,7 +479,7 @@ fn get_business_to_customer_details(data: &web::Data<Pool>) -> BusinessToCustome
         String::from("https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest");
     let my_initiator_name: String = String::from("testapi");
     let my_security_credential: String = String::from("***");
-    let my_command_id: String = String::from("BusinessPayment");
+    let my_command_id: String = String::from("BusinessPayment"); //SalaryPayment, BusinessPayment, PromotionPayment
     let my_amount: u32 = 150;
     let my_party_a: u32 = 600978;
     let my_party_b: String = String::from("254708374149");

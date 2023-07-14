@@ -33,6 +33,13 @@ struct BusinessToCustomerResponseData {
     ResponseDescription: Option<String>,
 }
 
+#[derive(Deserialize, Debug)]
+struct BusinessToCustomerErrorResponseData {
+    requestId: Option<String>,
+    errorCode: Option<String>,
+    errorMessage: Option<String>,
+}
+
 // This struct holds  Business To Customer processing data
 pub struct BusinessToCustomerInputDetails {
     pub access_token: String,
@@ -193,7 +200,20 @@ pub async fn business_to_customer(
                     );
                     */
                 }
-                s => println!("Received response status: {:?}", s),
+                //s => println!("Received response status: {:?}", s),
+                s => {
+                    let k = String::from(""); //Default value.
+                    let my_output = response
+                        .json::<BusinessToCustomerErrorResponseData>()
+                        .await?;
+                    let request_id = &my_output.requestId.as_ref().unwrap_or(&k);
+                    let error_code = &my_output.errorCode.as_ref().unwrap_or(&k);
+                    let error_message = &my_output.errorMessage.as_ref().unwrap_or(&k);
+                    println!("Received response status: {:?}", s);
+                    println!("request_id: {:?}", request_id);
+                    println!("error_code: {:?}", error_code);
+                    println!("error_message: {:?}", error_message);
+                }
             }
         }
     };
