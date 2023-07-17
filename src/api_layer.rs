@@ -163,7 +163,8 @@ pub async fn business_to_customer(
 
     match res {
         Err(e) => {
-            println!("server not responding");
+            //println!("server not responding");
+            println!("server not responding: {:?}", e.to_string());
         }
         Ok(response) => {
             match response.status() {
@@ -179,6 +180,10 @@ pub async fn business_to_customer(
                     let response_code = &my_output.ResponseCode.as_ref().unwrap_or(&k);
                     let response_description =
                         &my_output.ResponseDescription.as_ref().unwrap_or(&k);
+                    let request_id = String::from("");
+                    let error_code = String::from("");
+                    let error_message = String::from("");
+                    /*
                     println!(
                         "originator_conversation_id: {:?}",
                         originator_conversation_id
@@ -186,22 +191,26 @@ pub async fn business_to_customer(
                     println!("conversation_id: {:?}", conversation_id);
                     println!("response_code: {:?}", response_code);
                     println!("response_description: {:?}", response_description);
-                    /*
-                    crate::db_layer::create_mpesa_register_url(
+                    */
+                    crate::db_layer::create_b2c_acknowledgement(
                         &data,
-                        originator_coversation_id.to_string(),
+                        originator_conversation_id.to_string(),
                         conversation_id.to_string(),
+                        response_code.to_string(),
                         response_description.to_string(),
-                        register_url_data.ShortCode,
-                        register_url_data.ConfirmationURL,
-                        register_url_data.ValidationURL,
+                        business_to_customer_data.CommandID,
+                        business_to_customer_data.PartyA,
+                        business_to_customer_data.PartyB,
+                        business_to_customer_data.Amount,
+                        request_id,
+                        error_code,
+                        error_message,
                         date_to_mpesa,
                         date_from_mpesa,
                     );
-                    */
                 }
-                //s => println!("Received response status: {:?}", s),
                 s => {
+                    let date_from_mpesa = Local::now().format("%Y-%m-%d %H:%M:%S%.3f").to_string();
                     let k = String::from(""); //Default value.
                     let my_output = response
                         .json::<BusinessToCustomerErrorResponseData>()
@@ -209,10 +218,32 @@ pub async fn business_to_customer(
                     let request_id = &my_output.requestId.as_ref().unwrap_or(&k);
                     let error_code = &my_output.errorCode.as_ref().unwrap_or(&k);
                     let error_message = &my_output.errorMessage.as_ref().unwrap_or(&k);
+                    let originator_conversation_id = String::from("");
+                    let conversation_id = String::from("");
+                    let response_code = String::from("");
+                    let response_description = String::from("");
+                    /*
                     println!("Received response status: {:?}", s);
                     println!("request_id: {:?}", request_id);
                     println!("error_code: {:?}", error_code);
                     println!("error_message: {:?}", error_message);
+                    */
+                    crate::db_layer::create_b2c_acknowledgement(
+                        &data,
+                        originator_conversation_id.to_string(),
+                        conversation_id.to_string(),
+                        response_code.to_string(),
+                        response_description.to_string(),
+                        business_to_customer_data.CommandID,
+                        business_to_customer_data.PartyA,
+                        business_to_customer_data.PartyB,
+                        business_to_customer_data.Amount,
+                        request_id.to_string(),
+                        error_code.to_string(),
+                        error_message.to_string(),
+                        date_to_mpesa,
+                        date_from_mpesa,
+                    );
                 }
             }
         }

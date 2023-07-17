@@ -294,7 +294,7 @@ async fn get_b2c_timeout(
     let transaction_id = &result_data.Result.TransactionID;
     let reference_item = &result_data.Result.ReferenceData.ReferenceItem;
     let queue_timeout_url = &reference_item.Value;
-
+    /*
     println!("result_type: {:?}", &result_type);
     println!("result_code: {:?}", &result_code);
     println!("result_desc: {:?}", &result_desc);
@@ -305,7 +305,17 @@ async fn get_b2c_timeout(
     println!("conversation_id: {:?}", &conversation_id);
     println!("transaction_id: {:?}", &transaction_id);
     println!("queue_timeout_url: {:?}", &queue_timeout_url);
-    //web::Json(project_response_data)
+    */
+    db_layer::create_b2c_timeout(
+        &data,
+        *result_type,
+        *result_code,
+        result_desc.to_string(),
+        originator_conversation_id.to_string(),
+        conversation_id.to_string(),
+        transaction_id.to_string(),
+        queue_timeout_url.to_string(),
+    );
     format!("")
 }
 
@@ -442,6 +452,31 @@ async fn get_b2c_result(
             }
         }
     }
+
+    if transaction_id.replace(" ", "").trim().len() > 0
+        && transaction_receipt.replace(" ", "").trim().len() > 0
+    {
+        // Lets insert each entry
+        db_layer::create_b2c_result(
+            &data,
+            *result_type,
+            *result_code,
+            result_desc.to_string(),
+            originator_conversation_id.to_string(),
+            conversation_id.to_string(),
+            transaction_id.to_string(),
+            transaction_amount,
+            transaction_receipt.to_string(),
+            b2c_recipient_is_registered_customer.to_string(),
+            b2c_charges_paid_account_available_funds,
+            receiver_party_public_name.to_string(),
+            transaction_completed_date_time.to_string(),
+            b2c_utility_account_available_funds,
+            b2c_working_account_available_funds,
+            queue_timeout_url.to_string(),
+        );
+    }
+    /*
     println!("transaction_amount: {:?}", &transaction_amount);
     println!("transaction_receipt: {:?}", &transaction_receipt);
     println!(
@@ -469,7 +504,7 @@ async fn get_b2c_result(
         &b2c_working_account_available_funds
     );
     println!("queue_timeout_url: {:?}", &queue_timeout_url);
-    //web::Json(project_response_data)
+    */
     format!("")
 }
 
@@ -481,8 +516,8 @@ fn get_business_to_customer_details(data: &web::Data<Pool>) -> BusinessToCustome
     let my_security_credential: String = String::from("***");
     let my_command_id: String = String::from("BusinessPayment"); //SalaryPayment, BusinessPayment, PromotionPayment
     let my_amount: u32 = 150;
-    let my_party_a: u32 = 600978;
-    let my_party_b: String = String::from("254708374149");
+    let my_party_a: u32 = ***;
+    let my_party_b: String = String::from("2547***");
     let my_remarks: String = String::from("Performance payment fees");
     let my_queue_time_out_url: String =
         String::from("https://ef67-154-159-237-160.ngrok.io/b2c/timeout");

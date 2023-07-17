@@ -199,6 +199,160 @@ pub fn create_transaction(
     response_status
 }
 
+pub fn create_b2c_acknowledgement(
+    data: &web::Data<Pool>,
+    originator_conversation_id: String,
+    conversation_id: String,
+    response_code: String,
+    response_description: String,
+    command_id: String,
+    party_a: u32,
+    party_b: String,
+    amount: u32,
+    request_id: String,
+    error_code: String,
+    error_message: String,
+    date_to_mpesa: String,
+    date_from_mpesa: String,
+) -> ResponseStatus {
+    let my_status_code: u8 = 1;
+    let my_status_description: String = ERROR_MESSAGE.to_string();
+
+    let mut response_status = ResponseStatus {
+        status_code: my_status_code,
+        status_description: my_status_description,
+    };
+
+    match data.get_conn().and_then(|mut conn| {
+        insert_b2c_acknowledgement_data(
+            &mut conn,
+            originator_conversation_id,
+            conversation_id,
+            response_code,
+            response_description,
+            command_id,
+            party_a,
+            party_b,
+            amount,
+            request_id,
+            error_code,
+            error_message,
+            date_to_mpesa,
+            date_from_mpesa,
+        )
+    }) {
+        Ok(x) => {
+            if x > 0 {
+                response_status.status_code = 0;
+                response_status.status_description = String::from("Successful");
+            }
+        }
+        Err(e) => println!("Failed to open DB connection. create_teller {:?}", e),
+    }
+
+    response_status
+}
+
+pub fn create_b2c_timeout(
+    data: &web::Data<Pool>,
+    result_type: u8,
+    result_code: u32,
+    result_description: String,
+    originator_conversation_id: String,
+    conversation_id: String,
+    transaction_id: String,
+    queue_timeout_url: String,
+) -> ResponseStatus {
+    let my_status_code: u8 = 1;
+    let my_status_description: String = ERROR_MESSAGE.to_string();
+
+    let mut response_status = ResponseStatus {
+        status_code: my_status_code,
+        status_description: my_status_description,
+    };
+
+    match data.get_conn().and_then(|mut conn| {
+        insert_b2c_timeout_data(
+            &mut conn,
+            result_type,
+            result_code,
+            result_description,
+            originator_conversation_id,
+            conversation_id,
+            transaction_id,
+            queue_timeout_url,
+        )
+    }) {
+        Ok(x) => {
+            if x > 0 {
+                response_status.status_code = 0;
+                response_status.status_description = String::from("Successful");
+            }
+        }
+        Err(e) => println!("Failed to open DB connection. create_teller {:?}", e),
+    }
+
+    response_status
+}
+
+pub fn create_b2c_result(
+    data: &web::Data<Pool>,
+    result_type: u8,
+    result_code: u32,
+    result_description: String,
+    originator_conversation_id: String,
+    conversation_id: String,
+    transaction_id: String,
+    transaction_amount: f32,
+    transaction_receipt: String,
+    b2c_recipient_is_registered_customer: String,
+    b2c_charges_paid_account_available_funds: f32,
+    receiver_party_public_name: String,
+    transaction_completed_date_time: String,
+    b2c_utility_account_available_funds: f32,
+    b2c_working_account_available_funds: f32,
+    queue_timeout_url: String,
+) -> ResponseStatus {
+    let my_status_code: u8 = 1;
+    let my_status_description: String = ERROR_MESSAGE.to_string();
+
+    let mut response_status = ResponseStatus {
+        status_code: my_status_code,
+        status_description: my_status_description,
+    };
+
+    match data.get_conn().and_then(|mut conn| {
+        insert_b2c_result_data(
+            &mut conn,
+            result_type,
+            result_code,
+            result_description,
+            originator_conversation_id,
+            conversation_id,
+            transaction_id,
+            transaction_amount,
+            transaction_receipt,
+            b2c_recipient_is_registered_customer,
+            b2c_charges_paid_account_available_funds,
+            receiver_party_public_name,
+            transaction_completed_date_time,
+            b2c_utility_account_available_funds,
+            b2c_working_account_available_funds,
+            queue_timeout_url,
+        )
+    }) {
+        Ok(x) => {
+            if x > 0 {
+                response_status.status_code = 0;
+                response_status.status_description = String::from("Successful");
+            }
+        }
+        Err(e) => println!("Failed to open DB connection. create_teller {:?}", e),
+    }
+
+    response_status
+}
+
 pub fn get_project_data(data: &web::Data<Pool>) -> ProjectResponseData {
     let mut vec_project_data = Vec::new();
     let mut my_status_code: u8 = 1;
@@ -378,6 +532,112 @@ fn insert_transaction_data(
         },
         )
 	.and_then(|_| Ok(transaction_id))
+}
+
+fn insert_b2c_acknowledgement_data(
+    conn: &mut PooledConn,
+    my_originator_conversation_id: String,
+    my_conversation_id: String,
+    my_response_code: String,
+    my_response_description: String,
+    my_command_id: String,
+    my_party_a: u32,
+    my_party_b: String,
+    my_amount: u32,
+    my_request_id: String,
+    my_error_code: String,
+    my_error_message: String,
+    my_date_to_mpesa: String,
+    my_date_from_mpesa: String,
+) -> std::result::Result<u64, mysql::error::Error> {
+    // Now let's insert data to the database
+    conn.exec_drop(
+        "insert into b2c_acknowledgement_details (originator_conversation_id, conversation_id, response_code, response_description, command_id, party_a, party_b, amount, request_id, error_code, error_message, date_to_mpesa, date_from_mpesa) values (:originator_conversation_id, :conversation_id, :response_code, :response_description, :command_id, :party_a, :party_b, :amount, :request_id, :error_code, :error_message, :date_to_mpesa, :date_from_mpesa);",
+        params! {
+            "originator_conversation_id" => my_originator_conversation_id,
+            "conversation_id" => my_conversation_id,
+            "response_code" => my_response_code,
+            "response_description" => my_response_description,
+            "command_id" => my_command_id,
+            "party_a" => my_party_a,
+            "party_b" => my_party_b,
+            "amount" => my_amount,
+            "request_id" => my_request_id,
+            "error_code" => my_error_code,
+            "error_message" => my_error_message,
+            "date_to_mpesa" => my_date_to_mpesa,
+            "date_from_mpesa" => my_date_from_mpesa,
+        },
+    )
+	.and_then(|_| Ok(conn.last_insert_id()))
+}
+
+fn insert_b2c_timeout_data(
+    conn: &mut PooledConn,
+    my_result_type: u8,
+    my_result_code: u32,
+    my_result_description: String,
+    my_originator_conversation_id: String,
+    my_conversation_id: String,
+    my_transaction_id: String,
+    my_queue_timeout_url: String,
+) -> std::result::Result<u64, mysql::error::Error> {
+    // Now let's insert data to the database
+    conn.exec_drop(
+        "insert into b2c_timeout_details (result_type, result_code, result_description, originator_conversation_id, conversation_id, transaction_id, queue_timeout_url) values (:result_type, :result_code, :result_description, :originator_conversation_id, :conversation_id, :transaction_id, :queue_timeout_url);",
+        params! {
+            "result_type" => my_result_type,
+            "result_code" => my_result_code,
+            "result_description" => my_result_description,
+            "originator_conversation_id" => my_originator_conversation_id,
+            "conversation_id" => my_conversation_id,
+            "transaction_id" => my_transaction_id,
+            "queue_timeout_url" => my_queue_timeout_url,
+        },
+    )
+	.and_then(|_| Ok(conn.last_insert_id()))
+}
+
+fn insert_b2c_result_data(
+    conn: &mut PooledConn,
+    my_result_type: u8,
+    my_result_code: u32,
+    my_result_description: String,
+    my_originator_conversation_id: String,
+    my_conversation_id: String,
+    my_transaction_id: String,
+    my_transaction_amount: f32,
+    my_transaction_receipt: String,
+    my_b2c_recipient_is_registered_customer: String,
+    my_b2c_charges_paid_account_available_funds: f32,
+    my_receiver_party_public_name: String,
+    my_transaction_completed_date_time: String,
+    my_b2c_utility_account_available_funds: f32,
+    my_b2c_working_account_available_funds: f32,
+    my_queue_timeout_url: String,
+) -> std::result::Result<u64, mysql::error::Error> {
+    // Now let's insert data to the database
+    conn.exec_drop(
+        "insert into b2c_result_details (result_type, result_code, result_description, originator_conversation_id, conversation_id, transaction_id, transaction_amount, transaction_receipt, b2c_recipient_is_registered_customer, b2c_charges_paid_account_available_funds, receiver_party_public_name, transaction_completed_date_time, b2c_utility_account_available_funds, b2c_working_account_available_funds, queue_timeout_url) values (:result_type, :result_code, :result_description, :originator_conversation_id, :conversation_id, :transaction_id, :transaction_amount, :transaction_receipt, :b2c_recipient_is_registered_customer, :b2c_charges_paid_account_available_funds, :receiver_party_public_name, :transaction_completed_date_time, :b2c_utility_account_available_funds, :b2c_working_account_available_funds, :queue_timeout_url);",
+        params! {
+            "result_type" => my_result_type,
+            "result_code" => my_result_code,
+            "result_description" => my_result_description,
+            "originator_conversation_id" => my_originator_conversation_id,
+            "conversation_id" => my_conversation_id,
+            "transaction_id" => my_transaction_id,
+            "transaction_amount" => my_transaction_amount,
+            "transaction_receipt" => my_transaction_receipt,
+            "b2c_recipient_is_registered_customer" => my_b2c_recipient_is_registered_customer,
+            "b2c_charges_paid_account_available_funds" => my_b2c_charges_paid_account_available_funds,
+            "receiver_party_public_name" => my_receiver_party_public_name,
+            "transaction_completed_date_time" => my_transaction_completed_date_time,
+            "b2c_utility_account_available_funds" => my_b2c_utility_account_available_funds,
+            "b2c_working_account_available_funds" => my_b2c_working_account_available_funds,
+            "queue_timeout_url" => my_queue_timeout_url,
+        },
+    )
+	.and_then(|_| Ok(conn.last_insert_id()))
 }
 
 fn select_project_details(
