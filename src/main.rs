@@ -595,7 +595,6 @@ fn get_business_to_customer_details(
     my_occassion: String,
     my_access_token: String,
 ) -> BusinessToCustomerInputDetails {
-    //let my_access_token: String = String::from("Bearer AGK0R9YqGsPmVYsnbiEHKKNPWElb");
     let my_api_url: String =
         db_layer::get_settings_details(&data, String::from("b2cpaymentrequesturlmpesa"));
     let my_initiator_name: String =
@@ -703,7 +702,6 @@ async fn main() {
             .service(add_beneficiary)
             .service(add_transaction)
             .service(post_transaction)
-            //.service(initiate_business_to_customer)
             .service(get_project)
             .service(get_beneficiary)
             .service(get_transaction)
