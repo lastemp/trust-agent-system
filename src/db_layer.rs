@@ -1,5 +1,6 @@
 use crate::BeneficiaryDetails;
 use crate::BeneficiaryResponseData;
+use crate::PostTransactionDetails;
 use crate::ProjectDetails;
 use crate::ProjectResponseData;
 use crate::ResponseStatus;
@@ -76,7 +77,7 @@ pub fn create_project(
                 response_status.status_description = String::from("Successful");
             }
         }
-        Err(e) => println!("Failed to open DB connection. create_bank {:?}", e),
+        Err(e) => println!("Failed to open DB connection. create_project {:?}", e),
     }
 
     response_status
@@ -134,7 +135,7 @@ pub fn create_beneficiary(
                 response_status.status_description = String::from("Successful");
             }
         }
-        Err(e) => println!("Failed to open DB connection. create_branch {:?}", e),
+        Err(e) => println!("Failed to open DB connection. create_beneficiary {:?}", e),
     }
 
     response_status
@@ -193,10 +194,61 @@ pub fn create_transaction(
                 response_status.status_description = String::from("Successful");
             }
         }
-        Err(e) => println!("Failed to open DB connection. create_teller {:?}", e),
+        Err(e) => println!("Failed to open DB connection. create_transaction {:?}", e),
     }
 
     response_status
+}
+
+pub fn get_post_transaction(
+    data: &web::Data<Pool>,
+    project_id: u32,
+    transaction_id: u32,
+) -> PostTransactionDetails {
+    let my_status_code: u8 = 1;
+    let my_status_description: String = ERROR_MESSAGE.to_string();
+    let my_transaction_id = 0;
+    let my_beneficiary_id = 0;
+    let my_amount_paid = 0;
+    let my_mobile_no = String::from("");
+
+    let mut transaction_details = PostTransactionDetails {
+        status_code: my_status_code,
+        status_description: my_status_description,
+        transaction_id: my_transaction_id,
+        beneficiary_id: my_beneficiary_id,
+        amount_paid: my_amount_paid,
+        mobile_no: my_mobile_no,
+    };
+
+    if project_id == 0 {
+        transaction_details.status_description =
+            String::from("Project id must be greater than zero!");
+        return transaction_details;
+    }
+
+    if transaction_id == 0 {
+        transaction_details.status_description =
+            String::from("Transaction id must be greater than zero!");
+        return transaction_details;
+    }
+
+    match data
+        .get_conn()
+        .and_then(|mut conn| select_post_transaction_details(&mut conn, project_id, transaction_id))
+    {
+        Ok(transaction_data) => {
+            transaction_details.status_code = transaction_data.status_code;
+            transaction_details.status_description = transaction_data.status_description;
+            transaction_details.transaction_id = transaction_data.transaction_id;
+            transaction_details.beneficiary_id = transaction_data.beneficiary_id;
+            transaction_details.amount_paid = transaction_data.amount_paid;
+            transaction_details.mobile_no = transaction_data.mobile_no;
+        }
+        Err(e) => println!("Failed to open DB connection. get_post_transaction {:?}", e),
+    }
+
+    transaction_details
 }
 
 pub fn create_b2c_acknowledgement(
@@ -247,7 +299,10 @@ pub fn create_b2c_acknowledgement(
                 response_status.status_description = String::from("Successful");
             }
         }
-        Err(e) => println!("Failed to open DB connection. create_teller {:?}", e),
+        Err(e) => println!(
+            "Failed to open DB connection. create_b2c_acknowledgement {:?}",
+            e
+        ),
     }
 
     response_status
@@ -289,7 +344,7 @@ pub fn create_b2c_timeout(
                 response_status.status_description = String::from("Successful");
             }
         }
-        Err(e) => println!("Failed to open DB connection. create_teller {:?}", e),
+        Err(e) => println!("Failed to open DB connection. create_b2c_timeout {:?}", e),
     }
 
     response_status
@@ -347,7 +402,7 @@ pub fn create_b2c_result(
                 response_status.status_description = String::from("Successful");
             }
         }
-        Err(e) => println!("Failed to open DB connection. create_teller {:?}", e),
+        Err(e) => println!("Failed to open DB connection. create_b2c_result {:?}", e),
     }
 
     response_status
@@ -680,6 +735,48 @@ fn select_transaction_details(
             |(my_project_id, my_project_name, my_beneficiary_name, my_amount_paid, my_is_bank_payment)| {
                 let transaction_details = TransactionDetails { project_id: my_project_id, project_name: my_project_name, beneficiary_name: my_beneficiary_name, amount_paid: my_amount_paid, is_bank_payment: my_is_bank_payment, };
                 transaction_data.push(transaction_details);
+            },
+    )
+	.and_then(|_| Ok(transaction_data))
+}
+
+fn select_post_transaction_details(
+    conn: &mut PooledConn,
+    my_project_id: u32,
+    my_transaction_id: u32,
+) -> std::result::Result<PostTransactionDetails, mysql::error::Error> {
+    let mut transaction_data = PostTransactionDetails {
+        status_code: 1,
+        status_description: ERROR_MESSAGE.to_string(),
+        transaction_id: 0,
+        beneficiary_id: 0,
+        amount_paid: 0,
+        mobile_no: String::from(""),
+    };
+
+    conn.exec_map(
+        "call getposttransactiondetails (:myprojectid, :mytransactionid, :mytransactionid_out, :mybeneficiaryid, :myamountpaid, :mymobileno);",
+        params! {
+            "myprojectid" => my_project_id,
+            "mytransactionid" => my_transaction_id,
+            "mytransactionid_out" => 0, // output param
+            "mybeneficiaryid" => 0, // output param
+            "myamountpaid" => 0, // output param
+            "mymobileno" => String::from(""), // output param
+        },
+            |(my_transaction_id, my_beneficiary_id, my_amount_paid, my_mobile_no)| {
+                transaction_data.transaction_id = my_transaction_id;
+                transaction_data.beneficiary_id = my_beneficiary_id;
+                transaction_data.amount_paid = my_amount_paid;
+                transaction_data.mobile_no = my_mobile_no;
+                if my_transaction_id > 0 && my_beneficiary_id > 0 {
+                    transaction_data.status_code = 0;
+                    transaction_data.status_description = String::from("Successful");
+                }
+                else {
+                    transaction_data.status_code = 1;
+                    transaction_data.status_description = String::from("Record entry not found");
+                }
             },
     )
 	.and_then(|_| Ok(transaction_data))

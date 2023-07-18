@@ -41,6 +41,12 @@ struct TransactionData {
     is_bank_payment: bool,
 }
 
+#[derive(Deserialize)]
+struct PostTransactionData {
+    project_id: u32,
+    transaction_id: u32,
+}
+
 #[derive(Deserialize, Debug)]
 pub struct ReferenceItemDetails {
     pub Key: String,
@@ -164,6 +170,16 @@ pub struct TransactionResponseData {
     pub transaction_data: Vec<TransactionDetails>,
 }
 
+#[derive(Serialize, Debug)]
+pub struct PostTransactionDetails {
+    pub status_code: u8,
+    pub status_description: String,
+    pub transaction_id: u32,
+    pub beneficiary_id: u32,
+    pub amount_paid: u32,
+    pub mobile_no: String,
+}
+
 #[get("/")]
 async fn index() -> impl Responder {
     format!("")
@@ -248,6 +264,44 @@ async fn add_transaction(
     web::Json(response_data)
 }
 
+#[post("/posttransaction")]
+async fn post_transaction(
+    transaction_data: web::Json<PostTransactionData>,
+    data: web::Data<Pool>,
+) -> impl Responder {
+    let project_id = &transaction_data.project_id;
+    let transaction_id = &transaction_data.transaction_id;
+    let my_status_code: u8 = 1;
+    let my_status_description: String =
+        String::from("Error occured during processing, please try again.");
+
+    let mut response_status = ResponseStatus {
+        status_code: my_status_code,
+        status_description: my_status_description,
+    };
+
+    let response_data = db_layer::get_post_transaction(&data, *project_id, *transaction_id);
+    if response_data.status_code == 0
+        && response_data.amount_paid > 0
+        && response_data.mobile_no.len() > 0
+    {
+        let mobile_no = &response_data.mobile_no;
+        let amount_paid = &response_data.amount_paid;
+        let business_to_customer_data =
+            get_business_to_customer_details(&data, mobile_no.to_string(), *amount_paid);
+
+        tokio::spawn(async move {
+            // Process each request concurrently.
+            api_layer::business_to_customer(data, business_to_customer_data).await;
+        });
+    }
+
+    response_status.status_code = response_data.status_code;
+    response_status.status_description = response_data.status_description;
+
+    web::Json(response_status)
+}
+/*
 #[get("/initiatebusinesstocustomer")]
 async fn initiate_business_to_customer(data: web::Data<Pool>) -> impl Responder {
     let business_to_customer_data = get_business_to_customer_details(&data);
@@ -259,7 +313,7 @@ async fn initiate_business_to_customer(data: web::Data<Pool>) -> impl Responder 
 
     format!("")
 }
-
+*/
 #[get("/getproject")]
 async fn get_project(data: web::Data<Pool>) -> impl Responder {
     let project_response_data = db_layer::get_project_data(&data);
@@ -508,16 +562,18 @@ async fn get_b2c_result(
     format!("")
 }
 
-fn get_business_to_customer_details(data: &web::Data<Pool>) -> BusinessToCustomerInputDetails {
+fn get_business_to_customer_details(
+    data: &web::Data<Pool>,
+    my_party_b: String,
+    my_amount: u32,
+) -> BusinessToCustomerInputDetails {
     let my_access_token: String = String::from("Bearer ***");
     let my_api_url: String =
         String::from("https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest");
-    let my_initiator_name: String = String::from("testapi");
+    let my_initiator_name: String = String::from("***");
     let my_security_credential: String = String::from("***");
     let my_command_id: String = String::from("BusinessPayment"); //SalaryPayment, BusinessPayment, PromotionPayment
-    let my_amount: u32 = 150;
     let my_party_a: u32 = ***;
-    let my_party_b: String = String::from("2547***");
     let my_remarks: String = String::from("Performance payment fees");
     let my_queue_time_out_url: String =
         String::from("https://ef67-154-159-237-160.ngrok.io/b2c/timeout");
@@ -594,7 +650,8 @@ async fn main() {
             .service(add_project)
             .service(add_beneficiary)
             .service(add_transaction)
-            .service(initiate_business_to_customer)
+            .service(post_transaction)
+            //.service(initiate_business_to_customer)
             .service(get_project)
             .service(get_beneficiary)
             .service(get_transaction)
