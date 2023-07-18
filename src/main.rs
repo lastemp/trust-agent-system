@@ -3,6 +3,7 @@ mod db_layer;
 
 use crate::api_layer::BusinessToCustomerInputDetails;
 use actix_web::{get, post, web, App, HttpServer, Responder};
+use base64::encode;
 use dotenv::dotenv;
 use mysql::*;
 use serde::{Deserialize, Serialize};
@@ -180,6 +181,13 @@ pub struct PostTransactionDetails {
     pub mobile_no: String,
 }
 
+const TRANSACTION_COMMAND_ID: &str = "BusinessPayment"; //SalaryPayment, BusinessPayment, PromotionPayment
+
+const TRANSACTION_REMARKS: &str = "Performance payment fees";
+
+const TRANSACTION_OCCASSION: &str = "Performance payment fees";
+const AUTHORISATION_BEARER: &str = "Bearer";
+
 #[get("/")]
 async fn index() -> impl Responder {
     format!("")
@@ -287,8 +295,23 @@ async fn post_transaction(
     {
         let mobile_no = &response_data.mobile_no;
         let amount_paid = &response_data.amount_paid;
-        let business_to_customer_data =
-            get_business_to_customer_details(&data, mobile_no.to_string(), *amount_paid);
+        let command_id = TRANSACTION_COMMAND_ID.to_string();
+        let _remarks = TRANSACTION_REMARKS.to_string();
+        let _occassion = TRANSACTION_OCCASSION.to_string();
+        let mut access_token = AUTHORISATION_BEARER.to_string();
+        let k = " "; // Separator
+        let password: String = db_layer::get_mpesa_access_token(&data);
+        access_token.push_str(k);
+        access_token.push_str(&password);
+        let business_to_customer_data = get_business_to_customer_details(
+            &data,
+            mobile_no.to_string(),
+            *amount_paid,
+            command_id.to_string(),
+            _remarks.to_string(),
+            _occassion.to_string(),
+            access_token.to_string(),
+        );
 
         tokio::spawn(async move {
             // Process each request concurrently.
@@ -301,19 +324,7 @@ async fn post_transaction(
 
     web::Json(response_status)
 }
-/*
-#[get("/initiatebusinesstocustomer")]
-async fn initiate_business_to_customer(data: web::Data<Pool>) -> impl Responder {
-    let business_to_customer_data = get_business_to_customer_details(&data);
 
-    tokio::spawn(async move {
-        // Process each request concurrently.
-        api_layer::business_to_customer(data, business_to_customer_data).await;
-    });
-
-    format!("")
-}
-*/
 #[get("/getproject")]
 async fn get_project(data: web::Data<Pool>) -> impl Responder {
     let project_response_data = db_layer::get_project_data(&data);
@@ -562,23 +573,45 @@ async fn get_b2c_result(
     format!("")
 }
 
+#[get("/generateauth")]
+async fn generate_auth(data: web::Data<Pool>) -> impl Responder {
+    let api_key = get_api_key(&data);
+    let api_url = db_layer::get_settings_details(&data, String::from("authtokenurlmpesa"));
+
+    tokio::spawn(async move {
+        // Process each request concurrently.
+        api_layer::generate_auth_token(data, api_key, api_url).await;
+    });
+
+    format!("")
+}
+
 fn get_business_to_customer_details(
     data: &web::Data<Pool>,
     my_party_b: String,
     my_amount: u32,
+    my_command_id: String,
+    my_remarks: String,
+    my_occassion: String,
+    my_access_token: String,
 ) -> BusinessToCustomerInputDetails {
-    let my_access_token: String = String::from("Bearer ***");
+    //let my_access_token: String = String::from("Bearer AGK0R9YqGsPmVYsnbiEHKKNPWElb");
     let my_api_url: String =
-        String::from("https://sandbox.safaricom.co.ke/mpesa/b2c/v1/paymentrequest");
-    let my_initiator_name: String = String::from("***");
-    let my_security_credential: String = String::from("***");
-    let my_command_id: String = String::from("BusinessPayment"); //SalaryPayment, BusinessPayment, PromotionPayment
-    let my_party_a: u32 = ***;
-    let my_remarks: String = String::from("Performance payment fees");
+        db_layer::get_settings_details(&data, String::from("b2cpaymentrequesturlmpesa"));
+    let my_initiator_name: String =
+        db_layer::get_settings_details(&data, String::from("b2cinitiatornamempesa"));
+    let my_security_credential: String =
+        db_layer::get_settings_details(&data, String::from("b2csecuritycredentialmpesa"));
+    let my_party_a: String = db_layer::get_settings_details(&data, String::from("b2cpartyampesa"));
     let my_queue_time_out_url: String =
-        String::from("https://ef67-154-159-237-160.ngrok.io/b2c/timeout");
-    let my_result_url: String = String::from("https://ef67-154-159-237-160.ngrok.io/b2c/result");
-    let my_occassion: String = String::from("performance event");
+        db_layer::get_settings_details(&data, String::from("b2capplicationqueuetimeouturl"));
+    let my_result_url: String =
+        db_layer::get_settings_details(&data, String::from("b2capplicationresulturl"));
+
+    let my_party_a: u32 = match my_party_a.parse::<u32>() {
+        Ok(a) => a,
+        Err(e) => 0,
+    };
 
     let business_to_customer_data = BusinessToCustomerInputDetails {
         access_token: my_access_token,
@@ -596,6 +629,25 @@ fn get_business_to_customer_details(
     };
 
     business_to_customer_data
+}
+
+fn get_api_key(data: &web::Data<Pool>) -> String {
+    let consumer_key_mpesa =
+        db_layer::get_settings_details(&data, String::from("consumerkeympesa"));
+    let consumer_secret_mpesa =
+        db_layer::get_settings_details(&data, String::from("consumersecretmpesa"));
+    let mut password: String = consumer_key_mpesa;
+    let k = ":"; // Separator
+    password.push_str(k);
+    password.push_str(&consumer_secret_mpesa);
+    let encodedpassword = encode(password);
+
+    let mut api_key = String::from("Basic");
+    let k = " "; // Separator
+    api_key.push_str(k);
+    api_key.push_str(&encodedpassword);
+
+    api_key
 }
 
 fn get_conn_builder(
@@ -657,6 +709,7 @@ async fn main() {
             .service(get_transaction)
             .service(get_b2c_timeout)
             .service(get_b2c_result)
+            .service(generate_auth)
     })
     .bind(server_addr)
     {

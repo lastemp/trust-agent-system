@@ -93,7 +93,7 @@ pub async fn generate_auth_token(
                         Ok(a) => a,
                         Err(e) => 0,
                     };
-                    /*
+
                     crate::db_layer::create_mpesa_access_token(
                         &data,
                         access_token.to_string(),
@@ -101,7 +101,6 @@ pub async fn generate_auth_token(
                         date_to_mpesa,
                         date_from_mpesa,
                     );
-                    */
                 }
                 s => println!("Received response status: {:?}", s),
             }

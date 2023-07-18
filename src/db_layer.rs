@@ -200,6 +200,36 @@ pub fn create_transaction(
     response_status
 }
 
+pub fn create_mpesa_access_token(
+    data: &web::Data<Pool>,
+    access_token: String,
+    expires_in: u32,
+    date_to_mpesa: String,
+    date_from_mpesa: String,
+) -> bool {
+    let mut successful: bool = false;
+
+    match data.get_conn().and_then(|mut conn| {
+        insert_update_mpesa_access_token(
+            &mut conn,
+            access_token,
+            expires_in,
+            date_to_mpesa,
+            date_from_mpesa,
+        )
+    }) {
+        Ok(x) => {
+            successful = true;
+        }
+        Err(e) => println!(
+            "Failed to open DB connection. create_mpesa_access_token {:?}",
+            e
+        ),
+    }
+
+    successful
+}
+
 pub fn get_post_transaction(
     data: &web::Data<Pool>,
     project_id: u32,
@@ -498,6 +528,44 @@ pub fn get_transaction_data(data: &web::Data<Pool>) -> TransactionResponseData {
     output_data
 }
 
+pub fn get_mpesa_access_token(data: &web::Data<Pool>) -> String {
+    let mut access_token: String = String::from("");
+
+    match data
+        .get_conn()
+        .and_then(|mut conn| select_mpesa_access_token_details(&mut conn))
+    {
+        Ok(x) => {
+            access_token = x;
+        }
+        Err(e) => println!("Failed to open DB connection. {:?}", e),
+    }
+
+    access_token
+}
+
+pub fn get_settings_details(data: &web::Data<Pool>, param_key: String) -> String {
+    let mut param_value: String = String::from("");
+
+    if param_key.len() == 0 {
+        return param_value;
+    }
+
+    let param_key = param_key.to_lowercase();
+
+    match data
+        .get_conn()
+        .and_then(|mut conn| select_settings_details(&mut conn, param_key.to_string()))
+    {
+        Ok(x) => {
+            param_value = x;
+        }
+        Err(e) => println!("Failed to open DB connection. {:?}", e),
+    }
+
+    param_value
+}
+
 fn insert_project_data(
     conn: &mut PooledConn,
     project_name: String,
@@ -587,6 +655,25 @@ fn insert_transaction_data(
         },
         )
 	.and_then(|_| Ok(transaction_id))
+}
+
+fn insert_update_mpesa_access_token(
+    conn: &mut PooledConn,
+    access_token: String,
+    expires_in: u32,
+    date_to_mpesa: String,
+    date_from_mpesa: String,
+) -> std::result::Result<u8, mysql::error::Error> {
+    conn.exec_drop(
+        "call insertupdatempesaaccesstoken (:myaccesstoken, :myexpiresin, :mydatetompesa, :mydatefrommpesa);",
+        params! {
+            "myaccesstoken" => access_token,
+            "myexpiresin" => expires_in,
+            "mydatetompesa" => date_to_mpesa,
+			"mydatefrommpesa" => date_from_mpesa,
+        },
+    )
+	.and_then(|_| Ok(1))
 }
 
 fn insert_b2c_acknowledgement_data(
@@ -780,4 +867,36 @@ fn select_post_transaction_details(
             },
     )
 	.and_then(|_| Ok(transaction_data))
+}
+
+fn select_mpesa_access_token_details(
+    conn: &mut PooledConn,
+) -> std::result::Result<String, mysql::error::Error> {
+    let mut access_token: String = String::from("");
+
+    conn.exec_map(
+        "call getmpesaaccesstoken(:myaccesstoken);",
+        params! {
+            "myaccesstoken" => String::from(""), // output param
+        },
+        |myaccesstoken| access_token = myaccesstoken,
+    )
+    .and_then(|_| Ok(access_token))
+}
+
+fn select_settings_details(
+    conn: &mut PooledConn,
+    param_key: String,
+) -> std::result::Result<String, mysql::error::Error> {
+    let mut param_value: String = String::from("");
+
+    conn.exec_map(
+        "call getsettings(:paramkey, :paramvalue);",
+        params! {
+            "paramkey" => param_key,
+            "paramvalue" => String::from(""), // output param
+        },
+        |paramvalue| param_value = paramvalue,
+    )
+    .and_then(|_| Ok(param_value))
 }
