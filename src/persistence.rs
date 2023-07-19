@@ -1,14 +1,11 @@
-use crate::BeneficiaryDetails;
-use crate::BeneficiaryResponseData;
-use crate::PostTransactionDetails;
-use crate::ProjectDetails;
-use crate::ProjectResponseData;
-use crate::ResponseStatus;
-use crate::TransactionDetails;
-use crate::TransactionResponseData;
 use actix_web::web;
 use mysql::prelude::*;
 use mysql::*;
+
+use crate::models::{
+    BeneficiaryDetails, BeneficiaryResponseData, PostTransactionDetails, ProjectDetails,
+    ProjectResponseData, ResponseStatus, TransactionDetails, TransactionResponseData,
+};
 
 const ERROR_MESSAGE: &str = "Error occured during processing, please try again.";
 

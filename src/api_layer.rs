@@ -3,58 +3,12 @@ use chrono::prelude::*;
 use mysql::Pool;
 use reqwest::header::{ACCEPT, CONTENT_TYPE};
 use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Debug)]
-struct BusinessToCustomerData {
-    InitiatorName: String,
-    SecurityCredential: String,
-    CommandID: String,
-    Amount: u32,
-    PartyA: u32,
-    PartyB: String,
-    Remarks: String,
-    QueueTimeOutURL: String,
-    ResultURL: String,
-    Occassion: String,
-}
-
-#[derive(Deserialize, Debug)]
-struct AuthTokenResponseData {
-    access_token: Option<String>,
-    expires_in: Option<String>,
-}
-
-#[derive(Deserialize, Debug)]
-struct BusinessToCustomerResponseData {
-    OriginatorConversationID: Option<String>,
-    ConversationID: Option<String>,
-    ResponseCode: Option<String>,
-    ResponseDescription: Option<String>,
-}
-
-#[derive(Deserialize, Debug)]
-struct BusinessToCustomerErrorResponseData {
-    requestId: Option<String>,
-    errorCode: Option<String>,
-    errorMessage: Option<String>,
-}
-
-// This struct holds  Business To Customer processing data
-pub struct BusinessToCustomerInputDetails {
-    pub access_token: String,
-    pub api_url: String,
-    pub initiator_name: String,
-    pub security_credential: String,
-    pub command_id: String,
-    pub amount: u32,
-    pub party_a: u32,
-    pub party_b: String,
-    pub _remarks: String,
-    pub queue_time_out_url: String,
-    pub result_url: String,
-    pub _occassion: String,
-}
+use crate::models::{
+    AuthTokenResponseData, BusinessToCustomerData, BusinessToCustomerErrorResponseData,
+    BusinessToCustomerInputDetails, BusinessToCustomerResponseData,
+};
+use crate::persistence::{create_b2c_acknowledgement, create_mpesa_access_token};
 
 pub async fn generate_auth_token(
     data: web::Data<Pool>,
@@ -94,7 +48,7 @@ pub async fn generate_auth_token(
                         Err(e) => 0,
                     };
 
-                    crate::db_layer::create_mpesa_access_token(
+                    create_mpesa_access_token(
                         &data,
                         access_token.to_string(),
                         expires_in,
@@ -182,16 +136,8 @@ pub async fn business_to_customer(
                     let request_id = String::from("");
                     let error_code = String::from("");
                     let error_message = String::from("");
-                    /*
-                    println!(
-                        "originator_conversation_id: {:?}",
-                        originator_conversation_id
-                    );
-                    println!("conversation_id: {:?}", conversation_id);
-                    println!("response_code: {:?}", response_code);
-                    println!("response_description: {:?}", response_description);
-                    */
-                    crate::db_layer::create_b2c_acknowledgement(
+
+                    create_b2c_acknowledgement(
                         &data,
                         originator_conversation_id.to_string(),
                         conversation_id.to_string(),
@@ -221,13 +167,8 @@ pub async fn business_to_customer(
                     let conversation_id = String::from("");
                     let response_code = String::from("");
                     let response_description = String::from("");
-                    /*
-                    println!("Received response status: {:?}", s);
-                    println!("request_id: {:?}", request_id);
-                    println!("error_code: {:?}", error_code);
-                    println!("error_message: {:?}", error_message);
-                    */
-                    crate::db_layer::create_b2c_acknowledgement(
+
+                    create_b2c_acknowledgement(
                         &data,
                         originator_conversation_id.to_string(),
                         conversation_id.to_string(),
