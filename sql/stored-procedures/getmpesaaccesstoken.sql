@@ -1,14 +1,18 @@
 DELIMITER $$
-CREATE PROCEDURE `getmpesaaccesstoken`(
+CREATE DEFINER=`mpesa`@`localhost` PROCEDURE `getmpesaaccesstoken`(
     OUT myaccesstoken varchar(200)
 )
 BEGIN
 	set myaccesstoken = '';
     
-	select access_token into myaccesstoken 
-    from mpesa_access_token where trim(coalesce(response_code,'')) = '0' and 
-	coalesce(posted_to_mpesa,0) = 1
-    limit 1;
+	SELECT 
+    access_token
+INTO myaccesstoken FROM
+    mpesa_access_token
+WHERE
+    TRIM(COALESCE(response_code, '')) = '0'
+        AND COALESCE(posted_to_mpesa, 0) = 1
+LIMIT 1;
     
     set myaccesstoken = trim(coalesce(myaccesstoken,''));
 END$$
