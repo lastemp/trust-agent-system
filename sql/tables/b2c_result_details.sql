@@ -1,0 +1,21 @@
+CREATE TABLE `b2c_result_details` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `result_type` int DEFAULT 0,
+  `result_code` int DEFAULT 0,
+  `result_description` varchar(200) DEFAULT '',
+  `originator_conversation_id` varchar(200) DEFAULT '',
+  `conversation_id` varchar(200) DEFAULT '',
+  `transaction_id` varchar(200) DEFAULT '',
+  `transaction_amount` float DEFAULT 0,
+  `transaction_receipt` varchar(200) DEFAULT '',
+  `b2c_recipient_is_registered_customer` varchar(50) DEFAULT '',
+  `b2c_charges_paid_account_available_funds` float DEFAULT 0,
+  `receiver_party_public_name` varchar(200) DEFAULT '',
+  `transaction_completed_date_time` varchar(50) DEFAULT '',
+  `b2c_utility_account_available_funds` float DEFAULT 0,
+  `b2c_working_account_available_funds` float DEFAULT 0,
+  `queue_timeout_url` varchar(200) DEFAULT '',
+  `date_added` datetime DEFAULT CURRENT_TIMESTAMP,
+  `date_updated` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb3;
