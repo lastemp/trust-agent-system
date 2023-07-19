@@ -1,6 +1,6 @@
 # MySQL
 
-This RESTful Actix Web API that connects to MySQL database.
+This RESTful Actix Web API connects to MySQL database.
 It is meant to enable project owners to make payments from a single point to different beneficiaries.
 This system is useful for artists and other creatives who need surety that they will be paid since the amount was credited to a trusted agent. 
 
