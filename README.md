@@ -1,7 +1,6 @@
-# MySQL
+# trust-agent-system
 
-This RESTful Actix Web API connects to MySQL database.
-It is meant to enable project owners to make payments from a single point to different beneficiaries.
+This RESTful Actix Web API is meant to enable project owners to make payments from a single point to different beneficiaries.
 This system is useful for artists and other creatives who need surety that they will be paid since the amount was credited to a trusted agent. 
 
 You'll need to have a MySQL (or compatible) server running on your machine to test this example.
